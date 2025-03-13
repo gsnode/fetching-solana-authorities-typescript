@@ -76,6 +76,8 @@ Usage:
        Checking update authority for mint: <mint_address>
        Update authority for <mint_address>: false
 
+<img width="1284" alt="Captura de pantalla 2025-03-13 a la(s) 00 11 28" src="https://github.com/user-attachments/assets/f71e5471-b60d-4799-a294-1ef1f2f68fb5" />
+
 Troubleshooting:
 ----------------
 - Ensure that the mint address you provide is a valid base58 string. 
