@@ -1,75 +1,100 @@
 import { Connection, PublicKey, ParsedAccountData } from "@solana/web3.js";
 import { Metaplex } from "@metaplex-foundation/js";
-// Establish a connection using the free RPC endpoint from gsnode.io
+
+// Initialize connection to the Solana network using gsnode.io's free RPC endpoint
+console.log("Initializing connection to the Solana network using the gsnode.io RPC endpoint...");
 const connection = new Connection("https://rpc.free.gsnode.io");
 
+// Verify the connection by fetching the network version
+connection.getVersion()
+  .then((versionInfo) => {
+    console.log("Successfully connected to Solana network. Network version:", versionInfo);
+  })
+  .catch((err) => {
+    console.error("Failed to connect to Solana network:", err);
+  });
 
 /**
-* Check if the token mint has a freeze authority.
-* @param mint - The mint address of the token.
-* @returns A promise that resolves to true if freeze authority exists.
-*/
+ * Check if the token mint has a freeze authority.
+ * @param mint - The mint address of the token.
+ * @returns A promise that resolves to true if freeze authority exists.
+ */
 async function checkFreezeAuthority(mint: PublicKey): Promise<boolean> {
-try {
-
-// Retrieve parsed account info for the mint
-const data = await connection.getParsedAccountInfo(mint, "processed");
-const parsedMintInfo = (data?.value?.data as ParsedAccountData)?.parsed?.info;
-if (!parsedMintInfo) {
-console.warn("Mint information not found or invalid.");
-return false;
-}
-
-// Check if the freezeAuthority field is present
-return parsedMintInfo.freezeAuthority !== null && parsedMintInfo.freezeAuthority !==
-undefined;
-} catch (error) {
-console.error("Error validating freeze authority:", error);
-return false;
-}
+  console.log(`Checking freeze authority for mint: ${mint.toBase58()}`);
+  try {
+    const data = await connection.getParsedAccountInfo(mint, "processed");
+    const parsedMintInfo = (data?.value?.data as ParsedAccountData)?.parsed?.info;
+    if (!parsedMintInfo) {
+      console.warn(`Warning: Mint information for ${mint.toBase58()} not found or invalid.`);
+      return false;
+    }
+    const hasFreezeAuthority = parsedMintInfo.freezeAuthority !== null && parsedMintInfo.freezeAuthority !== undefined;
+    console.log(`Freeze authority for ${mint.toBase58()}: ${hasFreezeAuthority}`);
+    return hasFreezeAuthority;
+  } catch (error) {
+    console.error(`Error validating freeze authority for ${mint.toBase58()}:`, error);
+    return false;
+  }
 }
 
 /**
-* Check if the token mint has a mint authority.
-* @param mint - The mint address of the token.
-* @returns A promise that resolves to true if mint authority exists.
-*/
+ * Check if the token mint has a mint authority.
+ * @param mint - The mint address of the token.
+ * @returns A promise that resolves to true if mint authority exists.
+ */
 async function checkMintAuthority(mint: PublicKey): Promise<boolean> {
-try {
-// Retrieve parsed account info for the mint
-const data = await connection.getParsedAccountInfo(mint, "processed");
-const parsedMintInfo = (data?.value?.data as ParsedAccountData)?.parsed?.info;
-if (!parsedMintInfo) {
-console.warn("Mint information not found or invalid.");
-return false;
+  console.log(`Checking mint authority for mint: ${mint.toBase58()}`);
+  try {
+    const data = await connection.getParsedAccountInfo(mint, "processed");
+    const parsedMintInfo = (data?.value?.data as ParsedAccountData)?.parsed?.info;
+    if (!parsedMintInfo) {
+      console.warn(`Warning: Mint information for ${mint.toBase58()} not found or invalid.`);
+      return false;
+    }
+    const hasMintAuthority = parsedMintInfo.mintAuthority !== null && parsedMintInfo.mintAuthority !== undefined;
+    console.log(`Mint authority for ${mint.toBase58()}: ${hasMintAuthority}`);
+    return hasMintAuthority;
+  } catch (error) {
+    console.error(`Error validating mint authority for ${mint.toBase58()}:`, error);
+    return false;
+  }
 }
-// Check if the mintAuthority field is present
-return parsedMintInfo.mintAuthority !== null && parsedMintInfo.mintAuthority !== undefined;
-} catch (error) {
-console.error("Error validating mint authority:", error);
-return false;
-}
-
 
 /**
-* Check if the token has an update authority.
-* @param mint - The mint address of the token.
-* @returns A promise that resolves to true if update authority exists.
-*/
+ * Check if the token has an update authority.
+ * @param mint - The mint address of the token.
+ * @returns A promise that resolves to true if update authority exists.
+ */
 async function checkUpdateAuthority(mint: PublicKey): Promise<boolean> {
-try {
-// Create a Metaplex instance using our connection
-const metaplex = new Metaplex(connection);
-// Fetch the asset data using the mint address
-const asset = await metaplex.nfts().findByMint({ mintAddress: mint });
-// For NFTs/SFTs, ensure update authority is set
-if (asset.model === "nft" || asset.model === "sft") {
-return asset.updateAuthorityAddress !== null;
-}
-return false;
-} catch (error) {
-console.error("Error during update authority validation:", error);
-return false;
-}
+  console.log(`Checking update authority for mint: ${mint.toBase58()}`);
+  try {
+    const metaplex = new Metaplex(connection);
+    const asset = await metaplex.nfts().findByMint({ mintAddress: mint });
+    if (asset.model === "nft" || asset.model === "sft") {
+      const hasUpdateAuthority = asset.updateAuthorityAddress !== null;
+      console.log(`Update authority for ${mint.toBase58()}: ${hasUpdateAuthority}`);
+      return hasUpdateAuthority;
+    }
+    console.log(`Asset model for ${mint.toBase58()} is neither NFT nor SFT. Skipping update authority check.`);
+    return false;
+  } catch (error) {
+    console.error(`Error during update authority validation for ${mint.toBase58()}:`, error);
+    return false;
+  }
 }
 
+// Example usage:
+(async () => {
+  // Replace with your token mint address
+  const mintAddress = new PublicKey("INSERT_MINT_ADDRESS_HERE");
+  console.log("Starting token authority checks for mint:", mintAddress.toBase58());
+
+  const freezeAuthorityExists = await checkFreezeAuthority(mintAddress);
+  console.log("Freeze Authority exists:", freezeAuthorityExists);
+
+  const mintAuthorityExists = await checkMintAuthority(mintAddress);
+  console.log("Mint Authority exists:", mintAuthorityExists);
+
+  const updateAuthorityExists = await checkUpdateAuthority(mintAddress);
+  console.log("Update Authority exists:", updateAuthorityExists);
+})();
